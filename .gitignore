@@ -1,0 +1,5 @@
+antigravity-daily.h
+antigravity-daily.so
+*.test
+*.out
+dist/
