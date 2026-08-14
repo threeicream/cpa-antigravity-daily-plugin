@@ -1,35 +1,51 @@
-# CPA Antigravity Daily Credential Plugin
+# CLIProxyAPI 扩展插件集合
 
-这是面向 CLIProxyAPI v7.2.113 的本地动态库插件。它不会替换 CPA 的请求执行器，只负责通过 `daily-cloudcode-pa.googleapis.com` 完成 Antigravity OAuth、发现真实 `project_id`，再把原生 `antigravity` 凭证交给 CPA Host 保存。
+本仓库包含三个可以独立编译、独立安装和独立启停的 CLIProxyAPI 原生插件。仓库共用许可证和构建说明，但每个插件都有自己的目录、动态库文件名和 CPA 配置 ID。
 
-登录页面会读取 CPA 使用的 `cli-proxy-theme` 设置，并跟随“羊毛纸 / 白色 / 深色 / 自动”主题；CPA 在其他标签页切换主题时，插件页面也会同步更新。
+## 插件选择
 
-## 安全模型
+| 插件 | 源码位置 | 动态库文件 | CPA 配置 ID | 用途 |
+| --- | --- | --- | --- | --- |
+| Antigravity Daily | 仓库根目录 | `antigravity-daily.so` | `antigravity-daily` | Antigravity OAuth 登录、项目发现和凭证保存 |
+| Antigravity 3.7 Tiered | `antigravity-tiered/` | `antigravity-tiered.so` | `antigravity-tiered` | `gemini-3.7-flash` 的 Antigravity 档位别名 |
+| Vertex Gemini 3.7 | `vertex-gemini37/` | `vertex-gemini37.so` | `vertex-gemini37` | `gemini-3.7-flash` 的 Vertex 路由和请求适配 |
 
-- Google access/refresh token 只经 CPA Host 的 HTTP transport 和本机内存处理。
-- 最终凭证由 CPA 的认证存储接口原子写入 AuthDir。
-- 浏览器资源页面本身未认证，只承载静态 HTML；启动和轮询接口仍受 CPA 管理密钥保护。
-- 页面不会把管理密钥写入 localStorage、sessionStorage 或 Cookie。
-- 如果 daily API 没有返回真实 `project_id`，插件会报错并拒绝保存，不使用共享或伪造的回退项目。
+只使用某个插件时，只构建并启用对应的动态库和配置项；不需要把三个插件全部启用。
 
 ## 构建
 
-目标环境需要 Go 和 C 编译器：
+目标环境需要 Go 和 C 编译器。三个目标必须分别构建：
 
 ```bash
+# Antigravity Daily（仓库根目录）
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go test ./...
-CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared \
-  -o antigravity-daily.so .
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared -o antigravity-daily.so .
 rm -f antigravity-daily.h
+
+# Antigravity 3.7 Tiered
+cd antigravity-tiered
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go test ./...
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared -o antigravity-tiered.so .
+rm -f antigravity-tiered.h
+
+# Vertex Gemini 3.7
+cd ../vertex-gemini37
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go test ./...
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared -o vertex-gemini37.so .
+rm -f vertex-gemini37.h
+```
+
+将需要的 `.so` 文件放入 CPA 插件目录的 `linux/amd64` 子目录。动态库的基础名必须与配置 ID 一致：
+
+```text
+plugins/linux/amd64/antigravity-daily.so
+plugins/linux/amd64/antigravity-tiered.so
+plugins/linux/amd64/vertex-gemini37.so
 ```
 
 ## CPA 配置
 
-从 GitHub Releases 下载 `antigravity-daily-linux-amd64.so`（或按上文自行构建），放入 CPA 插件目录的 `linux/amd64` 子目录，并重命名为 `antigravity-daily.so`。文件基础名必须与插件配置 ID 对应：
-
-```text
-plugins/linux/amd64/antigravity-daily.so
-```
+下面是完整结构示例；只启用实际需要的条目。示例中的 OAuth 值是占位符，不要把真实凭证提交到 Git：
 
 ```yaml
 plugins:
@@ -41,31 +57,50 @@ plugins:
       priority: 1
       client_id: "YOUR_GOOGLE_OAUTH_CLIENT_ID"
       client_secret: "YOUR_GOOGLE_OAUTH_CLIENT_SECRET"
+    antigravity-tiered:
+      enabled: true
+      priority: 10
+    vertex-gemini37:
+      enabled: true
+      priority: 20
 ```
 
-`client_id` 和 `client_secret` 必须来自允许 `http://localhost:51121/oauth-callback` 的 Google OAuth 已安装应用。插件不会内置或公开上游项目的 OAuth 凭据；这两个值只保存在你的 CPA 配置和最终凭证中。管理页面及插件配置 API 应继续由 CPA 管理密钥保护。
-
-重启 CPA 后打开：
+修改插件文件或配置后重启 CPA。Antigravity Daily 登录入口为：
 
 ```text
 /v0/resource/plugins/antigravity-daily/login
 ```
 
-## 3.7 Flash 档位插件
+Vertex 插件不生成、不保存也不修改 Vertex API Key、服务账号 JSON、项目 ID 或区域；这些由 CPA 原生 Vertex 执行器和管理页面负责。
 
-`antigravity-tiered/` 是独立的 CLIProxyAPI 原生插件：它注册
-`gemini-3.7-flash-low`、`-medium`、`-high` 和 `-tiered` 四个客户端模型名，
-将请求路由到内置 Antigravity 的 `gemini-3.7-flash-tiered`，并为前三个别名
-设置对应的 `thinkingLevel`。它不读取或修改 OAuth 凭证，构建和部署说明见
-[`antigravity-tiered/README.md`](antigravity-tiered/README.md)。
+## 模型与路由
 
-## Vertex Gemini 3.7 插件
+`antigravity-tiered` 注册并路由：
 
-`vertex-gemini37/` 是独立的 Vertex 模型注册与请求适配插件。它注册
-`gemini-3.7-flash` 及其档位别名，将请求路由到 CPA 内置 Vertex provider，
-并由 CPA 原生 Vertex 执行器负责项目、区域和凭证。它不会生成或保存凭证。
-构建、启停、优先级和轮询边界见
-[`vertex-gemini37/README.md`](vertex-gemini37/README.md)。
+- `gemini-3.7-flash-low`
+- `gemini-3.7-flash-medium`
+- `gemini-3.7-flash-high`
+- `gemini-3.7-flash-tiered`
+
+`vertex-gemini37` 注册并路由：
+
+- `gemini-3.7-flash`
+- `gemini-3.7-flash-low`
+- `gemini-3.7-flash-medium`
+- `gemini-3.7-flash-high`
+- `gemini-3.7-flash-tiered`
+
+当前示例优先级为 Vertex 20、Antigravity 10。同名模型在 Vertex 凭证可用时优先走 Vertex；停用 Vertex 凭证后，CPA 会跳过不可用的 Vertex 目标并允许较低优先级的 Antigravity 路由处理。
+
+这不是跨 provider 轮询。CPA 的 `routing.strategy: round-robin` 只在选定的 provider 内轮询多个可用凭证；如果要在 Vertex 和 Antigravity 之间交替，需要另行实现跨 provider 调度逻辑。降低 Vertex 插件优先级不会产生这种轮询。
+
+详细的 Vertex 边界说明见 [`docs/vertex-gemini37.md`](docs/vertex-gemini37.md) 和 [`vertex-gemini37/README.md`](vertex-gemini37/README.md)。
+
+## 安全模型
+
+- 不要把 Google OAuth secret、API Key、服务账号 JSON、项目密钥或 CPA 管理密钥提交到仓库。
+- 认证文件只应由 CPA 的受保护管理接口或本机受限目录保存。
+- 构建产物 `.so` 和生成的 `.h` 文件默认被 `.gitignore` 排除；发布时应通过受控 Release/Artifact 分发。
 
 ## 许可证与来源
 
