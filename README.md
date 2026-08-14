@@ -6,7 +6,7 @@
 
 | 插件 | 源码位置 | 动态库文件 | CPA 配置 ID | 用途 |
 | --- | --- | --- | --- | --- |
-| Antigravity Daily | 仓库根目录 | `antigravity-daily.so` | `antigravity-daily` | Antigravity OAuth 登录、项目发现和凭证保存 |
+| Antigravity Daily | `antigravity-daily/` | `antigravity-daily.so` | `antigravity-daily` | Antigravity OAuth 登录、项目发现和凭证保存 |
 | Antigravity 3.7 Tiered | `antigravity-tiered/` | `antigravity-tiered.so` | `antigravity-tiered` | `gemini-3.7-flash` 的 Antigravity 档位别名 |
 | Vertex Gemini 3.7 | `vertex-gemini37/` | `vertex-gemini37.so` | `vertex-gemini37` | `gemini-3.7-flash` 的 Vertex 路由和请求适配 |
 
@@ -17,13 +17,14 @@
 目标环境需要 Go 和 C 编译器。三个目标必须分别构建：
 
 ```bash
-# Antigravity Daily（仓库根目录）
+# Antigravity Daily
+cd antigravity-daily
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go test ./...
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared -o antigravity-daily.so .
 rm -f antigravity-daily.h
 
 # Antigravity 3.7 Tiered
-cd antigravity-tiered
+cd ../antigravity-tiered
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go test ./...
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -buildmode=c-shared -o antigravity-tiered.so .
 rm -f antigravity-tiered.h
