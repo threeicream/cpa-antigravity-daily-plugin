@@ -51,6 +51,14 @@ plugins:
 /v0/resource/plugins/antigravity-daily/login
 ```
 
+## 3.7 Flash 档位插件
+
+`antigravity-tiered/` 是独立的 CLIProxyAPI 原生插件：它注册
+`gemini-3.7-flash-low`、`-medium`、`-high` 和 `-tiered` 四个客户端模型名，
+将请求路由到内置 Antigravity 的 `gemini-3.7-flash-tiered`，并为前三个别名
+设置对应的 `thinkingLevel`。它不读取或修改 OAuth 凭证，构建和部署说明见
+[`antigravity-tiered/README.md`](antigravity-tiered/README.md)。
+
 ## 许可证与来源
 
 本项目复刻了 [GCLI2API](https://github.com/su-kaka/gcli2api) 的 Antigravity daily endpoint 认证流程，因此按其 CNC-1.0 条款以非商业方式发布；详情见 [LICENSE](LICENSE)。CPA 插件 ABI 的接口形状参考 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)（MIT）。完整归属说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
