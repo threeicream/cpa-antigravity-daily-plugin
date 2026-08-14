@@ -59,6 +59,14 @@ plugins:
 设置对应的 `thinkingLevel`。它不读取或修改 OAuth 凭证，构建和部署说明见
 [`antigravity-tiered/README.md`](antigravity-tiered/README.md)。
 
+## Vertex Gemini 3.7 插件
+
+`vertex-gemini37/` 是独立的 Vertex 模型注册与请求适配插件。它注册
+`gemini-3.7-flash` 及其档位别名，将请求路由到 CPA 内置 Vertex provider，
+并由 CPA 原生 Vertex 执行器负责项目、区域和凭证。它不会生成或保存凭证。
+构建、启停、优先级和轮询边界见
+[`vertex-gemini37/README.md`](vertex-gemini37/README.md)。
+
 ## 许可证与来源
 
 本项目复刻了 [GCLI2API](https://github.com/su-kaka/gcli2api) 的 Antigravity daily endpoint 认证流程，因此按其 CNC-1.0 条款以非商业方式发布；详情见 [LICENSE](LICENSE)。CPA 插件 ABI 的接口形状参考 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)（MIT）。完整归属说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
